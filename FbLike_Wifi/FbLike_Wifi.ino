@@ -9,8 +9,8 @@
 #include <LedControl.h>
 #include <SoftwareSerial.h>
 #include <Bounce.h>
-#include "WifiProcess.h"
 #include "MyWIFI.h"
+#include "WifiProcess.h"
 #include "MyEEPROM.h"
 
 #ifdef DEBUG
@@ -31,18 +31,18 @@ MyEeprom g_Eeprom;
 ///////////////////////////////////////////////////////////////////
 // 按鍵相關
 ///////////////////////////////////////////////////////////////////
-const uint8_t ORIENTATION_PIN = 2;
-Bounce g_BtnReset = Bounce( ORIENTATION_PIN, 50 );
+#define PIN_ORIENTATION 12
+Bounce g_BtnReset = Bounce( PIN_ORIENTATION, 50 );
 
 ///////////////////////////////////////////////////////////////////
 // 七段顯示器相關
 ///////////////////////////////////////////////////////////////////
 byte g_NetState = WIFI_DEFAULT; //七段顯示器顯示的狀態;//
-const byte g_Digis = 5;         //七段顯示器位數;//
+const byte g_Digis = 6;         //七段顯示器位數;//
 const int g_DeviceNum = 1;      //使用的 MAX7219 數量;//
-#define PIN_DATA 11              //接MAX7219的P1(左上第一隻腳);//
-#define PIN_CLK  12              //接MAX7219的P13;//
-#define PIN_CS   13              //接MAX7219的P12;//
+#define PIN_DATA 3              //接MAX7219的P1(左上第一隻腳);//
+#define PIN_CLK  4              //接MAX7219的P13;//
+#define PIN_CS   2              //接MAX7219的P12;//
 
 LedControl g_Led = LedControl( PIN_DATA, PIN_CLK, PIN_CS, g_DeviceNum );
 
@@ -52,6 +52,7 @@ LedControl g_Led = LedControl( PIN_DATA, PIN_CLK, PIN_CS, g_DeviceNum );
 WifiProcess *g_WifiPro = 0;
 WifiServerProcess g_WifiServer;
 WifiClientProcess g_WifiClient;
+#define PIN_WIFIRESET 13
 
 void SetEEPROM()
 {
@@ -68,13 +69,17 @@ void Set7Seg()
     g_Led.shutdown(0,false);       //The MAX72XX is in power-saving mode on startup
     g_Led.setIntensity(0,15);      // Set the brightness to default value
     g_Led.clearDisplay(0);         // and clear the display
-    LedPrintString(F("-_-_-"));
+    LedPrintString(F("_-_-_-"));
 }
 
 bool SetWifi()
 { 
     //通電後讓其他模組先運作再開始主程式;//
     delay(1000);  
+  
+    //初始化WIFI模組的腳位;//
+    pinMode( PIN_WIFIRESET, OUTPUT );
+    digitalWrite( PIN_WIFIRESET, HIGH );
   
     bool IsWifiSetup = false;
     
@@ -93,14 +98,14 @@ bool SetWifi()
         //g_WifiPro = new WifiClientProcess();
         g_WifiPro = &g_WifiClient;
         //取得FB ID;// 
-        String FbQueryID = "/" + g_Eeprom.GetFbId();
-        //String FbQueryID = "/itri.tw";
+        //String FbQueryID = "/" + g_Eeprom.GetFbId();
+        String FbQueryID = "/itri.tw";
         
         //取得網路設定資訊;//
-        String Ssid = g_Eeprom.GetSsid();
-        String PW = g_Eeprom.GetPassWord();
-        //String Ssid = "dlink";
-        //String PW = "1234567890";
+        //String Ssid = g_Eeprom.GetSsid();
+        //String PW = g_Eeprom.GetPassWord();
+        String Ssid = "dlink";
+        String PW = "1234567890";
         
         //初始化WIFI連線;//
         IsWifiSetup = g_WifiPro->Setup( Ssid, PW,  FbQueryID );
@@ -122,8 +127,8 @@ void setup()
     SetEEPROM();      
     
     //初始化按鈕;//
-    pinMode( ORIENTATION_PIN, INPUT );
-    digitalWrite( ORIENTATION_PIN, LOW );
+    pinMode( PIN_ORIENTATION, INPUT );
+    digitalWrite( PIN_ORIENTATION, LOW );
     
     //初始化7段顯示器;// 
     Set7Seg();
@@ -162,7 +167,7 @@ void LedPrintNumber( unsigned int Num )
 //'.','-','_',' ' 
 void LedPrintString( String Str )
 {
-    if( Str.length() > 5 )
+    if( Str.length() > g_Digis )
         return;        
     
     for( int i=0; i<g_Digis; i++ )
@@ -180,22 +185,22 @@ void Process7Seg( int State )
     {
     //初始化狀態;//
     case WIFI_DEFAULT:
-        LedPrintString(F("_____"));
+        LedPrintString(F("______"));
         break;
     
     //伺服器狀態等待設定;//           
     case WIFI_SERVER_WAIT:
-        LedPrintString(F("SE UP"));
+        LedPrintString(F("    UP"));
         break;
         
     //Clent回傳資料設定完畢;//           
     case WIFI_CLIENT_SETUPED:
-        LedPrintString(F("  OFF"));
+        LedPrintString(F("   OFF"));
         break;
     
     //網路連線失敗;//
     case WIFI_ERR_SETUP:
-        LedPrintString(F("EEEEE"));
+        LedPrintString(F("IP EEE"));
         break;
         
     //FB數字顯示;//  
@@ -206,7 +211,7 @@ void Process7Seg( int State )
       
     //FB請求錯誤;//  
     case WIFI_ERR_FB_REQ:
-        LedPrintString(F("Fb EE"));
+        LedPrintString(F("Fb EEE"));
         break;
     }      
 }
@@ -265,6 +270,10 @@ void ProcessBtn()
                 
                 //延遲一段時間確保資料寫入;//
                 delay(1000);
+                
+                //重新啟動WIFI;//
+                digitalWrite( PIN_WIFIRESET, LOW );
+                digitalWrite( PIN_WIFIRESET, HIGH );
                         
                 //此行相當於按下Reset鍵;//
                 asm volatile ("  jmp 0");  

@@ -114,7 +114,7 @@ int  WifiServerProcess::Process()
                         m_Wifi.closeMux(m_Wifi.m_ClientId);                        
                     }
                 }                
-            }            
+            }
             
             //關閉連線;//
             m_Wifi.closeMux(m_Wifi.m_ClientId);
@@ -129,6 +129,13 @@ int  WifiServerProcess::Process()
             //關閉連線;//
             m_Wifi.closeMux(m_Wifi.m_ClientId);
         }
+        /*
+        else
+        {
+            //關閉連線;//
+            m_Wifi.closeMux(m_Wifi.m_ClientId);
+        }
+        */
     }
     
     return WIFI_SERVER_WAIT;
@@ -165,7 +172,7 @@ bool WifiServerProcess::ReplyPageSetting()
     if( m_Wifi.Send(m_Wifi.m_ClientId, F("<br><br><label>FaceBook ID:<br></label>")))
     if( m_Wifi.Send(m_Wifi.m_ClientId, F("<input type=\"text\" id=\"FBID\" name=\"FBID\" MAXLENGTH=24 SIZE=\"24\"/>")))
     if( m_Wifi.Send(m_Wifi.m_ClientId, F("<br><br><input type=\"submit\" value=\"Apply\"/>")))
-    if( m_Wifi.Send(m_Wifi.m_ClientId, F("<input TYPE=\"RESET\" VALUE=\"Reset\"/></form></body></html>")))
+    if( m_Wifi.Send(m_Wifi.m_ClientId, F("<input TYPE=\"RESET\" VALUE=\"Reset\"/></form></body></html>\r\n")))
         return true;
 
     return false;            
@@ -194,7 +201,7 @@ bool WifiServerProcess::ReplyPageSucces()
                         Str = "</td></tr><tr><font color=\"#ff0000\"><br>Setting Success!<br>";
                         if( m_Wifi.Send(m_Wifi.m_ClientId, Str) )
                         {
-                            Str = "Now System reboot!</font></td></tr></tbody></table></body></html>";
+                            Str = "Now System reboot!</font></td></tr></tbody></table></body></html>\r\n";
                             if( m_Wifi.Send(m_Wifi.m_ClientId, Str ) )
                             {
                                 return true;
