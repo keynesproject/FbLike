@@ -273,46 +273,50 @@ bool WifiClientProcess::Setup( String Ssid, String PW, String FbID )
 }
 
 int  WifiClientProcess::Process()
-{     
+{   
+    //每5秒請求一次資料;//  
+    delay( 5000 );
+    
     FbRequest();
-
-    String Str;
+    
     unsigned long Start = millis();
     while( millis() - Start < 3000 ) 
-    {
+    {      
         while( Uart.available() > 0 )
-        { 
-            //尋找指定欄位;//  
+        {     
+            //尋找指定欄位;//              
             char Temp[32];
             strcpy( Temp, m_FbField.c_str() );
+            Temp[ m_FbField.length() ] = '>';
+            Temp[ m_FbField.length()+1 ] = 0;
             if( !Uart.find( Temp ) )
-            {
+            {                
                 break;
             }
+            
             //表示有找到指定欄位,分析數值;//
-            char Read = Uart.read();
-            DBGL( Read );
-            if( Read == '>' )
+            m_RequestStr = "";
+            m_RequestStr = Uart.readStringUntil('<');
+            if( m_RequestStr.length() != 0 )
             {
-                Str = Uart.readStringUntil('<');
-                if( Str.length() != 0 )
-                {
-                    DBGL( Str );
-                    m_RequestValue = Str.toInt();
-                    DBG( "Facebook Like Num :" );
-                    DBGL( m_RequestValue );
-
-                    //將剩餘的資料讀取完畢;//
-                    while( Uart.available() > 0 )
-                    {
-                        Uart.read();
-                    }                    
-                    return WIFI_REQ_SUCESS;
-                }
+                m_RequestStr.replace( "<", "");
+                m_RequestStr.replace( ">", "");
+                DBGL( m_RequestStr );
+                m_RequestValue = m_RequestStr.toInt();
+                DBG( "Facebook Request Num :" );
+                DBG( m_RequestValue );
+ 
+               //將剩餘的資料讀取完畢;//
+               while( Uart.available() > 0 )
+               {
+                   Uart.read();
+               }
+               Uart.flush();
+                           
+               return WIFI_REQ_SUCESS;
             }
         }
-    }
-    
+    }    
     return WIFI_ERR_NO_DATA;
 }
 
@@ -326,17 +330,20 @@ int  WifiClientProcess::GetRequestValue( int Type )
 
 String  WifiClientProcess::GetRequestString( int Type )
 {
-    return "";  
+  if( Type != WIFI_REQ_FB_FIELD_NUM )
+        return "";
+        
+    return m_RequestStr;  
 }
 
 void WifiClientProcess::FbRequest()
-{  
-    delay( 5000 );
+{     
     DBG( "\nFb Request!\n" );
 /*
-GET /restserver.php?format=xml&method=fql.multiquery&pretty=0&queries=%7B%22page_info%22%3A%22select%20name%2Cfan_count%20from%20page%20where%20page_id%20IN%20(764858306921449)%22%7D HTTP/1.1
-Host: api-read.facebook.com
-Connection: keep-alive
+    這邊為完整的 HTTP REQUEST 字串
+    GET /restserver.php?format=xml&method=fql.multiquery&pretty=0&queries=%7B%22page_info%22%3A%22select%20name%2Cfan_count%20from%20page%20where%20page_id%20IN%20(764858306921449)%22%7D HTTP/1.1
+    Host: api-read.facebook.com
+    Connection: keep-alive
 */
     m_Wifi.Send( F("GET /restserver.php?format=xml&method=fql.multiquery&pretty=0&queries=%7B%22page_info%22%3A%22") );
     m_Wifi.Send( F("select%20name%2Cfan_count%20from%20page%20where%20page_id%20IN%20(") );

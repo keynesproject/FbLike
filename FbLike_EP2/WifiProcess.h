@@ -87,7 +87,8 @@ private:
 
     void FbRequest();
 
-    int    m_RequestValue;
+    int    m_RequestValue; //請求得到的值;//
+    String m_RequestStr;   //請求得到的字串;//
     String m_FbField;  //要請求欄位的名稱;//
     String m_FbHost;
     char   m_FbPort;

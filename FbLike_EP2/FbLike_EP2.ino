@@ -52,12 +52,12 @@ WifiClientProcess g_WifiClient;
 
 void SetEEPROM()
 { 
-  /*
+/*
    g_Eeprom.ClearEEPROM();
   
    while(1)
    {};
-  */
+*/
 }
 
 void Set7Seg()
@@ -84,7 +84,7 @@ bool SetWifi()
     if( BordState == 0 || BordState == 1 )
     {
         g_WifiPro = &g_WifiServer;   
-        Ssid = "FB_LIKE2";
+        Ssid = "FB_LIKE";
         PW = "1234567890";
     }
     else
@@ -188,7 +188,7 @@ void Process7Seg( int State )
     
     //伺服器狀態等待設定;//           
     case WIFI_SERVER_WAIT:
-        LedPrintString(F("    UP"));
+        LedPrintString(F("SEt UP"));
         break;
         
     //Clent回傳資料設定完畢;//           
@@ -204,7 +204,8 @@ void Process7Seg( int State )
     //FB數字顯示;//  
     case WIFI_REQ_SUCESS:
     case WIFI_ERR_NO_DATA:
-        LedPrintNumber( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
+        //LedPrintNumber( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
+        LedPrintString( g_WifiPro->GetRequestString( WIFI_REQ_FB_FIELD_NUM ) );
         break;
       
     //FB請求錯誤;//  
