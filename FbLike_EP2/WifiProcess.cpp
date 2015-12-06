@@ -38,7 +38,7 @@ bool WifiProcess::Initial( byte PinES, byte PinReset )
       return true;
 }
 
-int WifiProcess::GetRequestValue( int Type )
+unsigned long WifiProcess::GetRequestValue( int Type )
 {
     return 0;
 }
@@ -136,7 +136,7 @@ int  WifiServerProcess::Process()
                             ReplyPageSucces();
                      
                             //延遲一段時間確保資料傳送完畢;//
-                            delay(1000);
+                            delay(3000);
                                 
                             return WIFI_CLIENT_SETUPED;             
                         }
@@ -207,7 +207,7 @@ void WifiServerProcess::ReplyPageSucces()
     m_Wifi.Send( F("</td></tr><tr><td align=\"center\" ><font color=\"#ff0000\"><br>Setting Success!<br>Now System reboot!</font></td></tr></tbody></table></body></html>\r\n\r\n"));
 }
 
-int  WifiServerProcess::GetRequestValue( int Type )
+unsigned long WifiServerProcess::GetRequestValue( int Type )
 {    
     return 0;
 }
@@ -286,6 +286,7 @@ int  WifiClientProcess::Process()
         {     
             //尋找指定欄位;//              
             char Temp[32];
+            short Num = 0;
             strcpy( Temp, m_FbField.c_str() );
             Temp[ m_FbField.length() ] = '>';
             Temp[ m_FbField.length()+1 ] = 0;
@@ -302,6 +303,14 @@ int  WifiClientProcess::Process()
                 m_RequestStr.replace( "<", "");
                 m_RequestStr.replace( ">", "");
                 DBGL( m_RequestStr );
+                //分析數值;//
+                m_RequestValue = 0;
+                for( int i=m_RequestStr.length()-1; i>=0; i--)
+                {
+                    Num =  m_RequestStr[ m_RequestStr.length() - i -1 ];  
+                    Num -= 48;               
+                    m_RequestValue +=  ( Num * Pow( 10, i ) );
+                }
                 m_RequestValue = m_RequestStr.toInt();
                 DBG( "Facebook Request Num :" );
                 DBG( m_RequestValue );
@@ -320,7 +329,7 @@ int  WifiClientProcess::Process()
     return WIFI_ERR_NO_DATA;
 }
 
-int  WifiClientProcess::GetRequestValue( int Type )
+unsigned long  WifiClientProcess::GetRequestValue( int Type )
 {
     if( Type != WIFI_REQ_FB_FIELD_NUM )
         return 0;
@@ -334,6 +343,20 @@ String  WifiClientProcess::GetRequestString( int Type )
         return "";
         
     return m_RequestStr;  
+}
+
+unsigned long WifiClientProcess::Pow( unsigned long X, unsigned long Y )
+{
+    unsigned long Temp = 1;
+    if( Y == 0 )
+        return 1;
+        
+    for( int i=0; i<Y; i++ )
+    {
+        Temp *= X;
+    }
+
+    return Temp;
 }
 
 void WifiClientProcess::FbRequest()

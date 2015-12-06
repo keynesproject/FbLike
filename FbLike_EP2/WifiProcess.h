@@ -4,14 +4,14 @@
 #include <Arduino.h>
 #include "WifiMt7681.h"
 
-#define WIFI_REQ_SUCESS     0
-#define WIFI_DEFAULT        1
-#define WIFI_SERVER_WAIT    2
-#define WIFI_CLIENT_SETUPED 3
-#define WIFI_ERR_INITIAL    4
-#define WIFI_ERR_SETUP      5
-#define WIFI_ERR_NO_DATA    6
-#define WIFI_ERR_FB_REQ     7
+#define WIFI_REQ_SUCESS     0    //FB數字顯示;// 
+#define WIFI_DEFAULT        1    //初始化狀態;//              ______
+#define WIFI_SERVER_WAIT    2    //伺服器狀態等待設定;//      SEt UP
+#define WIFI_CLIENT_SETUPED 3    //Clent回傳資料設定完畢;//      OFF
+#define WIFI_ERR_INITIAL    4    //WIFI 模組初始化失敗;//     IF E01
+#define WIFI_ERR_SETUP      5    //WIFI 模組連線失敗;//       IF E02
+#define WIFI_ERR_NO_DATA    6    //沒請求到任何數字;// 
+#define WIFI_ERR_FB_REQ     7    //FB請求錯誤;//              Fb EEE
 
 #define WIFI_REQ_SSID         1
 #define WIFI_REQ_PW           2
@@ -30,7 +30,7 @@ public:
     virtual bool Setup( String Ssid, String PW, String FbID="" ) = 0;
     virtual int  Process() = 0;
     
-    virtual int  GetRequestValue( int Type ) = 0; //取得請求欄位的值//
+    virtual unsigned long  GetRequestValue( int Type ) = 0; //取得請求欄位的值//
     virtual String  GetRequestString( int Type ) = 0;
  
     void Reset();
@@ -52,9 +52,9 @@ public:
     ~WifiServerProcess();
     
     bool Setup( String Ssid, String PW, String FbID="" );
-    int  Process();
+    int Process();
     
-    int  GetRequestValue( int Type ); //取得請求欄位的值//
+    unsigned long  GetRequestValue( int Type ); //取得請求欄位的值//
     String  GetRequestString( int Type );
 private:            
     void ReplyHead( int HtmlLength = 0 );
@@ -79,15 +79,15 @@ public:
     ~WifiClientProcess();
     
     bool Setup( String Ssid, String PW, String FbID="" );
-    int  Process();
+    int Process();
     
-    int  GetRequestValue( int Type ); //取得請求欄位的值//
-    String  GetRequestString( int Type );
+    unsigned long GetRequestValue( int Type ); //取得請求欄位的值//
+    String GetRequestString( int Type );
 private:
-
+    unsigned long Pow( unsigned long X, unsigned long Y );  
     void FbRequest();
 
-    int    m_RequestValue; //請求得到的值;//
+    unsigned long  m_RequestValue; //請求得到的值;//
     String m_RequestStr;   //請求得到的字串;//
     String m_FbField;  //要請求欄位的名稱;//
     String m_FbHost;
