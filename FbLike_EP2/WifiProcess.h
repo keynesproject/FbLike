@@ -4,14 +4,17 @@
 #include <Arduino.h>
 #include "WifiMt7681.h"
 
-#define WIFI_REQ_SUCESS     0    //FB數字顯示;// 
-#define WIFI_DEFAULT        1    //初始化狀態;//              ______
-#define WIFI_SERVER_WAIT    2    //伺服器狀態等待設定;//      SEt UP
-#define WIFI_CLIENT_SETUPED 3    //Clent回傳資料設定完畢;//      OFF
-#define WIFI_ERR_INITIAL    4    //WIFI 模組初始化失敗;//     IF E01
-#define WIFI_ERR_SETUP      5    //WIFI 模組連線失敗;//       IF E02
-#define WIFI_ERR_NO_DATA    6    //沒請求到任何數字;// 
-#define WIFI_ERR_FB_REQ     7    //FB請求錯誤;//              Fb EEE
+#define WIFI_NONE           0    //無狀態,不處裡任何事物;//
+#define WIFI_DEFAULT        1    //初始化狀態;//               ______
+#define WIFI_SET_SERVER     2    //設定WIFI為SERVER狀態中;//   SEt  S
+#define WIFI_SET_CLIENT     3    //設定WIFI為CLIENT狀態中;//   SEt  C
+#define WIFI_SERVER_WAIT    4    //伺服器狀態等待設定;   //    SEr __ -> SEr_ _ -> SEr__
+#define WIFI_CLIENT_SETUPED 5    //Client回傳資料設定完畢;//    OFF
+#define WIFI_ERR_INITIAL    6    //WIFI模組初始化失敗;  //     IF E01
+#define WIFI_ERR_SETUP      7    //WIFI模組設定連線資訊失敗;// IF E02
+#define WIFI_ERR_NO_LINK    8    //WIFI模組沒有成功連線到AP;// IF E03
+#define WIFI_REQ_SUCESS     9    //FB數字顯示;// 
+#define WIFI_ERR_NO_DATA    10   //沒請求到任何數字;//         Fb EId
 
 #define WIFI_REQ_SSID         1
 #define WIFI_REQ_PW           2
@@ -88,12 +91,13 @@ private:
     void FbRequest();
 
     unsigned long  m_RequestValue; //請求得到的值;//
-    String m_RequestStr;   //請求得到的字串;//
-    String m_FbField;  //要請求欄位的名稱;//
+    String m_RequestStr;           //請求得到的字串;//
+    String m_FbField;              //要請求欄位的名稱;//
     String m_FbHost;
     char   m_FbPort;
     String m_FbID;
-    
+    short  m_FbDataErrCount;       //向FB請求資料有回應,但沒得到正確的欄位資訊,若此次數大於3次表示FB ID設定有誤;//
+    short  m_WifiRequestErrCount;  //向Wifi模組請求無回應計數,若此次數大於3次表示WIFI與AP連線失敗;//
 };
 
 #endif

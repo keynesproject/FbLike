@@ -85,15 +85,15 @@ bool SetWifi()
     byte BordState = g_Eeprom.GetBordState();
     if( BordState == 0 || BordState == 1 )
     {      
-        LedPrintString(F("SEt  S"));
+        g_NetState = WIFI_SET_SERVER;
      
         g_WifiPro = &g_WifiServer;   
-        Ssid = "FB_LIKE06";
+        Ssid = "FB_LIKE04";
         PW = "1234567890";
     }
     else
     {
-        LedPrintString(F("SEt  C"));
+        g_NetState = WIFI_SET_CLIENT;
         
         g_WifiPro = &g_WifiClient;
 
@@ -104,6 +104,9 @@ bool SetWifi()
         Ssid = g_Eeprom.GetSsid();
         PW = g_Eeprom.GetPassWord();
     }
+
+    //七段顯示器更改狀態畫面;//
+    Process7Seg( g_NetState );
 
     if( !g_WifiPro->Initial( PIN_WIFI_ES, PIN_WIFI_RESET ) )
     {
@@ -142,10 +145,12 @@ void setup()
     //初始化wifi;//
     if( !SetWifi() )
     {
+        //七段顯示氣顯示設定錯誤畫面;//
         Process7Seg( g_NetState );
 
         while(1)
         {
+            //等待按鈕重製或是機器斷電重開;//
             ProcessBtn();
         };
     } 
@@ -169,7 +174,7 @@ void HardwareReset()
     asm volatile ("  jmp 0");
 
     //此會觸發RESET,相當於斷電;//
-    //digitalWrite( PIN_RESET, LOW );
+    digitalWrite( PIN_RESET, LOW );
 }
 
 //顯示指定數字;//
@@ -206,8 +211,16 @@ void Process7Seg( int State )
     case WIFI_DEFAULT:
         LedPrintString(F("______"));
         break;
-    
-    //伺服器狀態等待設定;//           
+
+    case WIFI_SET_SERVER:
+        LedPrintString(F("SEt  S"));
+        break;
+
+    case WIFI_SET_CLIENT:
+        LedPrintString(F("SEt  C"));
+        break;
+
+    //伺服器狀態等待設定;//
     case WIFI_SERVER_WAIT:
         {
             if( g_RunTime == 3500 )
@@ -231,7 +244,7 @@ void Process7Seg( int State )
         }
         break;
         
-    //Clent回傳資料設定完畢;//           
+    //Client回傳資料設定完畢;//           
     case WIFI_CLIENT_SETUPED:
         LedPrintString(F("   OFF"));
         break;
@@ -241,23 +254,30 @@ void Process7Seg( int State )
         LedPrintString(F("IF E01"));
         break;
     
-    //wifi模組連線失敗;//
+    //WIFI模組初始化失敗;//
     case WIFI_ERR_SETUP:
         LedPrintString(F("IF E02"));
         break;
+
+   //WIFI模組設定連線資訊失敗;//
+    case WIFI_ERR_NO_LINK:
+        LedPrintString(F("IF E03"));
+        break;
         
     //FB數字顯示;//  
-    case WIFI_REQ_SUCESS:
-    case WIFI_ERR_NO_DATA:
+    case WIFI_REQ_SUCESS:    
         LedPrintNumber( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
         //LedPrintString( g_WifiPro->GetRequestString( WIFI_REQ_FB_FIELD_NUM ) );
         break;
-      
-    //FB請求錯誤;//  
-    case WIFI_ERR_FB_REQ:
-        LedPrintString(F("Fb EEE"));
+     
+    //FB ID請求錯誤;//  
+    case WIFI_ERR_NO_DATA:
+        LedPrintString(F("Fb EId"));
         break;
-    }      
+
+    default:
+        break;
+    }
 }
 
 void ProcessNet()
@@ -300,7 +320,7 @@ void ProcessBtn()
 {
     g_BtnReset.update();
        
-    // has our orientation changed for more the 5 second
+    // has our orientation changed for more the 3 second
     while( g_BtnReset.read() == HIGH )
     {
         g_BtnReset.update();
@@ -311,11 +331,8 @@ void ProcessBtn()
                 
             //恢復EEPROM為原始設定;//
             g_Eeprom.ClearEEPROM();
-                
-            //延遲一段時間確保資料寫入;//
-            delay(2000);
-                
-            //重新啟動WIFI;//
+            
+            //重新啟動WIFI,這邊會延遲4.5秒;//
             g_WifiPro->Reset();
 
             //重新啟動 MCU;//

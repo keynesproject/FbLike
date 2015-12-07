@@ -243,6 +243,8 @@ WifiClientProcess::WifiClientProcess()
     m_FbField = F("fan_count");
     m_FbHost = F("api-read.facebook.com");
     m_FbPort = 80;
+    m_WifiRequestErrCount = 0;
+    m_FbDataErrCount = 0;
 }
 
 WifiClientProcess::~WifiClientProcess()
@@ -274,24 +276,27 @@ bool WifiClientProcess::Setup( String Ssid, String PW, String FbID )
 
 int  WifiClientProcess::Process()
 {   
-    //每5秒請求一次資料;//  
+    //每5秒請求一次資料;//
     delay( 5000 );
     
     FbRequest();
     
     unsigned long Start = millis();
     while( millis() - Start < 3000 ) 
-    {      
+    {
         while( Uart.available() > 0 )
         {     
-            //尋找指定欄位;//              
+            //表示有資料從WIFI模組回傳回來,所以將連線請求錯誤次數歸0;//
+            m_WifiRequestErrCount = 0;
+            
+            //尋找指定欄位;//
             char Temp[32];
             short Num = 0;
             strcpy( Temp, m_FbField.c_str() );
             Temp[ m_FbField.length() ] = '>';
             Temp[ m_FbField.length()+1 ] = 0;
             if( !Uart.find( Temp ) )
-            {                
+            {
                 break;
             }
             
@@ -311,7 +316,6 @@ int  WifiClientProcess::Process()
                     Num -= 48;               
                     m_RequestValue +=  ( Num * Pow( 10, i ) );
                 }
-                m_RequestValue = m_RequestStr.toInt();
                 DBG( "Facebook Request Num :" );
                 DBG( m_RequestValue );
  
@@ -321,12 +325,33 @@ int  WifiClientProcess::Process()
                    Uart.read();
                }
                Uart.flush();
-                           
+
+               //表示有請求到正確資料,讀取資料錯誤計數歸0;//
+               m_FbDataErrCount = 0;
+               
                return WIFI_REQ_SUCESS;
             }
         }
-    }    
-    return WIFI_ERR_NO_DATA;
+    }
+
+    //計算WIFI未請求到資料的次數,當此次數大於3次認定為WIFI已經中斷與AP的連線;//
+    m_WifiRequestErrCount++;
+    if( m_WifiRequestErrCount > 3 )
+    {
+        //指定數值的原因為防止數值溢位;//
+        m_WifiRequestErrCount = 4;
+        return WIFI_ERR_NO_LINK;
+    }
+
+    m_FbDataErrCount++;
+    if( m_FbDataErrCount > 3 )
+    { 
+        //指定數值的原因為防止數值溢位;//
+        m_FbDataErrCount = 4;
+        return WIFI_ERR_NO_DATA;
+    }
+
+    return WIFI_NONE;
 }
 
 unsigned long  WifiClientProcess::GetRequestValue( int Type )
