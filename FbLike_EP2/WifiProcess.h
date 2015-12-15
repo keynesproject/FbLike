@@ -87,7 +87,6 @@ public:
     unsigned long GetRequestValue( int Type ); //取得請求欄位的值//
     String GetRequestString( int Type );
 private:
-    unsigned long Pow( unsigned long X, unsigned long Y );  
     void FbRequest();
 
     unsigned long  m_RequestValue; //請求得到的值;//

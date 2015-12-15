@@ -41,6 +41,8 @@ const int g_DeviceNum = 1;      //使用的 MAX7219 數量;//
 #define PIN_CS   7              //接MAX7219的P12;//
 short g_RunCount = 0;
 short g_RunTime = 0;
+unsigned long g_CurrentNum = 0;
+
 LedControl g_Led = LedControl( PIN_DATA, PIN_CLK, PIN_CS, g_DeviceNum );
 
 ///////////////////////////////////////////////////////////////////
@@ -88,7 +90,7 @@ bool SetWifi()
         g_NetState = WIFI_SET_SERVER;
      
         g_WifiPro = &g_WifiServer;   
-        Ssid = "FB_LIKE04";
+        Ssid = "FB_LIKE05";
         PW = "1234567890";
     }
     else
@@ -121,7 +123,7 @@ bool SetWifi()
         g_NetState = WIFI_ERR_SETUP;
         return false;
     }    
-
+    
     return true;
 }
 
@@ -191,22 +193,174 @@ void LedPrintNumber( unsigned long Num )
 //顯示字串;//
 void LedPrintString( String Str )
 {
-    if( Str.length() > g_Digis )
-        return;        
-    
+    //字串顯示從輸入的最後一個字往前顯示;//
     for( int i=0; i<g_Digis; i++ )
     {
         if( i < Str.length() )
-            g_Led.setChar( 0, Str.length()-1-i, Str[i], false );
+            g_Led.setChar( 0, i, Str[Str.length()-1-i], false );
         else
             g_Led.setChar( 0, i, ' ', false );
     }
+}
+
+//整理陣列數字,將字串移至指定位數,不足的前面補字串0,超過的位數則刪除;//
+void ArrangeArrary( char *NumArray, byte Digit )
+{
+    //將原始的數字轉換為字串,並只取個位數開始的指定位數;//     
+      byte NumLen = strlen(NumArray);
+      if( NumLen < Digit )
+      {
+          //將字串往右移至指定位數,前頭指定為'0';//
+          for( int i=Digit-1, j=0; i>=0; i--, j++  )
+          {
+              if( j < NumLen )
+                  NumArray[ i ] = NumArray[ NumLen - 1 - j ];
+              else
+                  NumArray[ i ] = '0';
+          }
+          NumArray[Digit] = 0;
+      }
+      else if( NumLen > Digit )
+      {
+          //前面多餘的位數刪除,並把指定的位數字串往左移;//
+          for( int i= NumLen-Digit, j=0; i<NumLen; i++, j++ ) 
+              NumArray[j] = NumArray[i];
+  
+          NumArray[Digit] = 0;
+      }    
+}
+
+void LedEffect( unsigned long Num )
+{    
+    //先判斷數字是否有改變;//
+    if( g_CurrentNum == Num )
+        return;
+
+    //新數字比舊數字小,直接更改數字不顯示效果;//
+    if( g_CurrentNum > Num )
+    {
+        g_CurrentNum = Num;
+        LedPrintNumber( g_CurrentNum );
+    }
+
+    //閃爍間格時間;//
+    short ShineTime = 500;
+    short RollTime = 100;
+  
+    //閃兩下;//
+    LedPrintString( "" );
+    delay( ShineTime );
+    LedPrintNumber( g_CurrentNum );
+    delay( ShineTime );
+    LedPrintString( "" );
+    delay( ShineTime );
+    LedPrintNumber( g_CurrentNum );
+    delay( ShineTime );
+
+    //將新數字轉換成字串處理;//      
+    char StrNum[16] ;
+    ltoa( Num, StrNum, 10 );
+    ArrangeArrary( StrNum, g_Digis );
+    
+    //將原始的數字轉換為字串,並只取個位數開始的指定位數;//
+    char LedNum[16];        
+    ltoa( g_CurrentNum, LedNum, 10 );
+    ArrangeArrary( LedNum, g_Digis );
+
+    DBG( "Current LED Num:" );
+    DBG( LedNum );
+    DBGL( "      New Num:");
+    DBGL( StrNum );
+    
+    //若g_CurrentNum為0表示第一次設定,快速滾動至定位;//
+    if( g_CurrentNum == 0 )
+    {        
+        //這邊為第一次顯示數字,快速滾動至定位;//
+        byte CheckNum=0;
+        while( CheckNum < g_Digis )
+        {
+            CheckNum = 0;
+            //每一個位數+1若已經相等則不再變動;//
+            for( byte i=0; i<g_Digis; i++ )
+            {
+                if( StrNum[i] != LedNum[i] )
+                    LedNum[i]++;
+                else
+                    CheckNum++;
+                    
+                if( LedNum[i] > '9' )
+                  LedNum[i] = '0';
+            }            
+            LedPrintString( LedNum );
+            delay( RollTime );
+        } 
+    }
+    else
+    {
+        //先計算有幾個位數不同,在依照最高位數先跑一輪後到定位,在輪下一位數;//
+        byte DiffentNum = 0;
+        for(byte i=0; i<g_Digis; i++ )
+        {
+            if( LedNum[i] != StrNum[i] )
+            {
+                DiffentNum = g_Digis-i;
+                break;
+            }
+        }
+
+        //由不同的數值最高位數一起遞增滾動至指定位數;//
+        for( byte i = g_Digis - DiffentNum; i<g_Digis; i++ )
+        {
+            //先全部遞增滾動一輪到自己的位數;//
+            for( byte j = 0; j<10; j++ )
+            {
+                for( byte k = i; k<g_Digis; k++ )
+                {
+                    LedNum[k]++;
+                    if( LedNum[k] > '9' )
+                        LedNum[k] = '0';
+                }
+
+                LedPrintString( LedNum );
+                delay( RollTime );
+            }
+
+            //將最高位數滾動到指定數字;//
+            while( LedNum[i] != StrNum[i] )
+            {
+                for( byte k = i; k<g_Digis; k++ )
+                {
+                    LedNum[k]++;
+                    if( LedNum[k] > '9' )
+                        LedNum[k] = '0';
+                }
+                LedPrintString( LedNum );
+                delay( RollTime );
+            }
+        }
+    }
+
+    //閃兩下;//
+    LedPrintString( "" );
+    delay( ShineTime );
+    LedPrintNumber( Num );
+    delay( ShineTime );
+    LedPrintString( "" );
+    delay( ShineTime );
+    LedPrintNumber( Num );
+
+    //記錄新數字;//
+    g_CurrentNum = Num;
 }
 
 void Process7Seg( int State )
 {
     switch( State )
     {
+    //不處裡任何事情的狀態;//
+    case WIFI_NONE:
+        break;
+        
     //初始化狀態;//
     case WIFI_DEFAULT:
         LedPrintString(F("______"));
@@ -254,19 +408,20 @@ void Process7Seg( int State )
         LedPrintString(F("IF E01"));
         break;
     
-    //WIFI模組初始化失敗;//
+    //WIFI模組設定連線資訊失敗;//
     case WIFI_ERR_SETUP:
         LedPrintString(F("IF E02"));
         break;
 
-   //WIFI模組設定連線資訊失敗;//
+   //WIFI模組與ap連線失敗;//
     case WIFI_ERR_NO_LINK:
         LedPrintString(F("IF E03"));
         break;
         
     //FB數字顯示;//  
     case WIFI_REQ_SUCESS:    
-        LedPrintNumber( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
+        LedEffect( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
+        //LedPrintNumber( g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
         //LedPrintString( g_WifiPro->GetRequestString( WIFI_REQ_FB_FIELD_NUM ) );
         break;
      

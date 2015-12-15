@@ -1,5 +1,5 @@
 #include "WifiProcess.h"
-
+#include "MyUntil.h"
 
 #ifdef DEBUG
 #ifndef DBG(message)
@@ -276,8 +276,8 @@ bool WifiClientProcess::Setup( String Ssid, String PW, String FbID )
 
 int  WifiClientProcess::Process()
 {   
-    //每5秒請求一次資料;//
-    delay( 5000 );
+    //每3秒請求一次資料;//
+    delay( 3000 );
     
     FbRequest();
     
@@ -368,20 +368,6 @@ String  WifiClientProcess::GetRequestString( int Type )
         return "";
         
     return m_RequestStr;  
-}
-
-unsigned long WifiClientProcess::Pow( unsigned long X, unsigned long Y )
-{
-    unsigned long Temp = 1;
-    if( Y == 0 )
-        return 1;
-        
-    for( int i=0; i<Y; i++ )
-    {
-        Temp *= X;
-    }
-
-    return Temp;
 }
 
 void WifiClientProcess::FbRequest()
