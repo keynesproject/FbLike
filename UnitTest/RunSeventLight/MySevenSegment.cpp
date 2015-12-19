@@ -71,7 +71,7 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
 {
     switch( mode )
     {
-        case LED_NUM:
+        case LED_NUM:            
             //若數字相同則不做任何反應;//
             if( mCurrentNum == Value )
                 return;
@@ -89,7 +89,6 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
 
             //閃動2次;//
             EffectFlicker(2);
-            
             break;
 
         case LED_SERVER:
@@ -111,7 +110,11 @@ void MySevenSegment::EffectFlicker( int Times )
 
 //直接從現在數字滾動到指定數字;//
 void MySevenSegment::EffectPlusImmediately( unsigned long Num )
-{  
+{
+    //先判斷數字是否有改變;//
+    if( mCurrentNum == Num )
+        return;
+  
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
     
@@ -141,6 +144,10 @@ void MySevenSegment::EffectPlusImmediately( unsigned long Num )
 
 void MySevenSegment::EffectPlusAll( unsigned long Num )
 {
+    //先判斷數字是否有改變;//
+    if( mCurrentNum == Num )
+        return;
+
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
     
@@ -192,6 +199,10 @@ void MySevenSegment::EffectPlusAll( unsigned long Num )
 
 void MySevenSegment::EffectPlusOne( unsigned long Num )
 {
+    //先判斷數字是否有改變;//
+    if( mCurrentNum == Num )
+        return;
+
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
 
@@ -219,13 +230,17 @@ void MySevenSegment::EffectPlusOne( unsigned long Num )
             delay( mRollTime );
         }
     }
-
+    
     //記錄新數字;//
     mCurrentNum = Num;
 }
 
 void MySevenSegment::EffectRandom( unsigned long Num )
 {
+    //先判斷數字是否有改變;//
+    if( mCurrentNum == Num )
+        return;
+
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
 }
@@ -279,15 +294,15 @@ void MySevenSegment::EffectServer()
     {
         if( mServerWaitCount == 0 )
         {
-            PrintString(F("SEr_  "));
+            PrintString(F("SEr __"));
         }
         else if( mServerWaitCount == 1 )
         {
-            PrintString(F("SEr _ "));
+            PrintString(F("SEr_ _"));
         }
         else
         {
-            PrintString(F("SEr  _"));
+            PrintString(F("SEr__ "));
         }
         mServerWaitCount = (mServerWaitCount+1) % 3;
         mServerWaitTime = mServerWaitTime%3500;

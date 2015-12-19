@@ -1,6 +1,7 @@
 #include <LedControl.h>
 #include <SoftwareSerial.h>
 #include <Bounce.h>
+#include <avr/wdt.h>
 #include "WifiMt7681.h"
 #include "WifiProcess.h"
 #include "MyEEPROM.h"
@@ -17,7 +18,6 @@
 #define DBGL(message)
 #define DBGW(message)
 #endif // DEBUG
-
 
 ///////////////////////////////////////////////////////////////////
 // EEPROM管理
@@ -52,16 +52,6 @@ WifiClientProcess g_WifiClient;
 #define PIN_WIFI_ES    5
 #define PIN_WIFI_RESET 6
 
-void SetEEPROM()
-{ 
-/*
-   g_Eeprom.ClearEEPROM();
-  
-   while(1)
-   {};
-*/
-}
-
 void Set7Seg()
 {
     g_Led.RollSubtitle("HELLO");
@@ -71,8 +61,6 @@ bool SetWifi()
 { 
     //通電後讓其他模組先運作再開始主程式;//
     //delay(1000);  
-     
-    bool IsWifiSetup = false;
 
     String FbQueryID = "";
     String Ssid;
@@ -84,7 +72,7 @@ bool SetWifi()
         g_NetState = WIFI_SET_SERVER;
      
         g_WifiPro = &g_WifiServer;   
-        Ssid = "FB_LIKE05";
+        Ssid = "FB_LIKE_DEMO";
         PW = "1234567890";
     }
     else
@@ -122,10 +110,10 @@ bool SetWifi()
 }
 
 void setup() 
-{  
-    //初始化EEPROM;//
-    SetEEPROM();
-
+{
+    //關閉Watchdog;//
+    wdt_disable();
+    
     //初始化Reset相關;//
     digitalWrite( PIN_RESET, HIGH );
     delay(200);
@@ -150,27 +138,42 @@ void setup()
             ProcessBtn();
         };
     } 
+
+    //Watch dog 監控,當8秒無反應系統自動RESET;//
+    wdt_enable( WDTO_8S );
 }
 
 void loop() 
-{  
+{     
     ProcessBtn();
 
     Process7Seg( g_NetState );
 
     ProcessNet();
+
+    wdt_reset();
 }
 
 void HardwareReset()
 {
+    wdt_disable();
+    
     DBGL( "System Reboot!" );
     delay(10);
     
     //此行相當於按下Reset鍵,但是REGEIST相關並不會清除;//
-    asm volatile ("  jmp 0");
+    //運作原理為程式運作跳到位址0x0000000地方開始執行;//
+    //asm volatile ("  jmp 0");
 
-    //此會觸發RESET,相當於斷電;//
-    digitalWrite( PIN_RESET, LOW );
+    //此會觸發RESET;//
+    //digitalWrite( PIN_RESET, LOW );
+
+    //重新啟動WIFI,這邊會延遲4.5秒;//
+    g_WifiPro->Reset();
+
+    //使用watchdog軟體方式重新啟動;//    
+    wdt_enable(WDTO_15MS);
+    while (1) {}
 }
 
 void Process7Seg( int State )
@@ -201,6 +204,8 @@ void Process7Seg( int State )
         
     //Client回傳資料設定完畢;//           
     case WIFI_CLIENT_SETUPED:
+        //因播放特效有可能較久,所以關閉Watchdog;//
+        wdt_disable();
         g_Led.RollSubtitle(F("CLOSE"));
         break;
 
@@ -221,7 +226,13 @@ void Process7Seg( int State )
         
     //FB數字顯示;//  
     case WIFI_REQ_SUCESS:    
+        //因播放特效有可能較久,所以關閉Watchdog;//
+        wdt_disable();
+        
         g_Led.Effect( LED_NUM, g_WifiPro->GetRequestValue( WIFI_REQ_FB_FIELD_NUM ) );
+
+        //啟動Watchdog;//
+        wdt_enable( WDTO_8S );
         break;
      
     //FB ID請求錯誤;//  
@@ -244,29 +255,22 @@ void ProcessNet()
 
         //取得設定資訊;//
         String Str = g_WifiPro->GetRequestString( WIFI_REQ_SSID );
-        if( Str.length() > 0 )
-        {
-            g_Eeprom.SetSsid( Str );
-            Str = g_WifiPro->GetRequestString( WIFI_REQ_PW );
-            if( Str.length() > 0 )
-            {
-                g_Eeprom.SetPassWord( Str );
-                Str = g_WifiPro->GetRequestString( WIFI_REQ_FBID );
-                if( Str.length() > 0 )
-                {
-                    g_Eeprom.SetFbId( Str );
+        g_Eeprom.SetSsid( Str );
 
-                    //取得完整設定資訊，設定板子狀態;//
-                    g_Eeprom.SetBoardState(2);
+        Str = g_WifiPro->GetRequestString( WIFI_REQ_PW );
+        g_Eeprom.SetPassWord( Str );
 
-                    //延遲一段時間確保資料寫入;//
-                    delay(1000);
+        Str = g_WifiPro->GetRequestString( WIFI_REQ_FBID );
+        g_Eeprom.SetFbId( Str );
 
-                    //重新啟動 MCU;//
-                    HardwareReset();
-                }
-            } 
-        }
+        //取得完整設定資訊，設定板子狀態;//
+        g_Eeprom.SetBoardState(2);
+
+        //延遲一段時間確保資料寫入;//
+        delay(500);
+
+        //重新啟動 MCU;//
+        HardwareReset();
     }
 }
 
@@ -279,16 +283,13 @@ void ProcessBtn()
     {
         g_BtnReset.update();
         
-        if ( g_BtnReset.duration() > 3000 ) 
-        {  
+        if ( g_BtnReset.duration() > 2000 ) 
+        {              
             //七段顯示關閉動畫;//
             Process7Seg( WIFI_CLIENT_SETUPED );
 
             //恢復EEPROM為原始設定;//
             g_Eeprom.ClearEEPROM();
-            
-            //重新啟動WIFI,這邊會延遲4.5秒;//
-            g_WifiPro->Reset();
 
             //重新啟動 MCU;//
             HardwareReset();
