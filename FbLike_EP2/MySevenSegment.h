@@ -24,7 +24,9 @@ public:
     void PrintNumber( unsigned long Num );
 
     //指定字串由右往左滾動;//
-    void RollSubtitle( String Str );
+    //Stop: true:滾動至最左後停住;//
+    //      false:一直往左滾動到字串消失;//
+    void RollSubtitle( String Str, bool Stop = false );
 
     //顯示指定效果;//
     void Effect( byte mode, unsigned long Value = 0);
@@ -46,6 +48,9 @@ private:
 
     //最外圍的跑燈效果;//
     void EffectAround( int Times );
+
+    //最外圍跑燈步進式,呼叫此函數跑動一次;//
+    void EffectAroundStep();
 
     //設定Server時的效果, SEr __ -> SEr_ _ -> SEr__ ;//
     void EffectServer();

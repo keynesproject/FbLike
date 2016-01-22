@@ -52,11 +52,6 @@ WifiClientProcess g_WifiClient;
 #define PIN_WIFI_ES    5
 #define PIN_WIFI_RESET 6
 
-void Set7Seg()
-{
-    g_Led.RollSubtitle("HELLO");
-}
-
 bool SetWifi()
 { 
     //通電後讓其他模組先運作再開始主程式;//
@@ -72,7 +67,7 @@ bool SetWifi()
         g_NetState = WIFI_SET_SERVER;
      
         g_WifiPro = &g_WifiServer;   
-        Ssid = "FB_LIKE_DEMO";
+        Ssid = "OLike002";
         PW = "1234567890";
     }
     else
@@ -123,8 +118,8 @@ void setup()
     pinMode( PIN_ORIENTATION, INPUT );
     digitalWrite( PIN_ORIENTATION, LOW );
 
-    //初始化7段顯示器;// 
-    Set7Seg();
+    //顯示開機跑馬燈;// 
+    g_Led.RollSubtitle("HELLO");
 
     //初始化wifi;//
     if( !SetWifi() )
@@ -190,11 +185,11 @@ void Process7Seg( int State )
         break;
 
     case WIFI_SET_SERVER:
-        g_Led.PrintString(F("SEt  S"));
+        g_Led.PrintString(F("SEt UP"));
         break;
 
     case WIFI_SET_CLIENT:
-        g_Led.PrintString(F("SEt  C"));
+        g_Led.PrintString(F("SEt Fb"));
         break;
 
     //伺服器狀態等待設定;//
@@ -211,17 +206,17 @@ void Process7Seg( int State )
 
     //WIFI 模組初始化失敗;//
     case WIFI_ERR_INITIAL:
-        g_Led.PrintString(F("IF E01"));
+        g_Led.PrintString(F("Err 01"));
         break;
     
     //WIFI模組設定連線資訊失敗;//
     case WIFI_ERR_SETUP:
-        g_Led.PrintString(F("IF E02"));
+        g_Led.PrintString(F("Err 02"));
         break;
 
    //WIFI模組與ap連線失敗;//
     case WIFI_ERR_NO_LINK:
-        g_Led.PrintString(F("IF E03"));
+        g_Led.PrintString(F("Err 03"));
         break;
         
     //FB數字顯示;//  
@@ -237,7 +232,7 @@ void Process7Seg( int State )
      
     //FB ID請求錯誤;//  
     case WIFI_ERR_NO_DATA:
-        g_Led.PrintString(F("Fb EId"));
+        g_Led.PrintString(F("Err Fb"));
         break;
 
     default:
@@ -249,10 +244,7 @@ void ProcessNet()
 {
     g_NetState = g_WifiPro->Process();
     if( g_NetState == WIFI_CLIENT_SETUPED )
-    {
-        //更改;//
-        Process7Seg( WIFI_CLIENT_SETUPED );
-
+    {      
         //取得設定資訊;//
         String Str = g_WifiPro->GetRequestString( WIFI_REQ_SSID );
         g_Eeprom.SetSsid( Str );
@@ -266,8 +258,11 @@ void ProcessNet()
         //取得完整設定資訊，設定板子狀態;//
         g_Eeprom.SetBoardState(2);
 
+        //更改完成,顯示Close字幕;//
+        Process7Seg( WIFI_CLIENT_SETUPED );
+
         //延遲一段時間確保資料寫入;//
-        delay(500);
+        //delay(500);
 
         //重新啟動 MCU;//
         HardwareReset();
@@ -285,11 +280,11 @@ void ProcessBtn()
         
         if ( g_BtnReset.duration() > 2000 ) 
         {              
-            //七段顯示關閉動畫;//
-            Process7Seg( WIFI_CLIENT_SETUPED );
-
             //恢復EEPROM為原始設定;//
             g_Eeprom.ClearEEPROM();
+
+            //七段顯示關閉動畫;//
+            Process7Seg( WIFI_CLIENT_SETUPED );
 
             //重新啟動 MCU;//
             HardwareReset();

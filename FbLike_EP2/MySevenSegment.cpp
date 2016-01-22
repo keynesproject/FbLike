@@ -45,7 +45,7 @@ void MySevenSegment::PrintNumber( unsigned long Num )
     }  
 }
 
-void MySevenSegment::RollSubtitle( String Str )
+void MySevenSegment::RollSubtitle( String Str, bool Stop )
 {
     memset( mLedNum, ' ', mDigits );
     mLedNum[ mDigits ] = 0;
@@ -93,7 +93,9 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
             break;
 
         case LED_SERVER:
-            EffectServer();
+            //EffectServer();
+            //EffectAround(1);            
+            EffectAroundStep();
             break;
     }
 }
@@ -237,6 +239,7 @@ void MySevenSegment::EffectAround( int Times )
     
     for( byte i=0; i<Times; i++ )
     {   
+        //左上至右上;//
         for( short j = mDigits-1; j>=0; j-- )
         {
             mLed.setLed( 0, j, 1, true );
@@ -245,15 +248,18 @@ void MySevenSegment::EffectAround( int Times )
             delay( RollTime );
         }
 
+        //右中上;//
         mLed.setLed( 0, 0, 2, true );
         mLed.setLed( 0, 0, 1, false );
         delay( RollTime );   
-  
+
+        //右中下;//
         mLed.setLed( 0, 0, 3, true );
         mLed.setLed( 0, 0, 2, false );
         delay( RollTime );
         mLed.setLed( 0, 0, 3, false );
 
+        //右下至左下;//
         for( short j = 0; j<mDigits; j++ )
         {
             mLed.setLed( 0, j, 4, true );
@@ -261,16 +267,66 @@ void MySevenSegment::EffectAround( int Times )
               mLed.setLed( 0, j-1, 4, false );
             delay( RollTime );
         }
+
+        //左中下;//
         mLed.setLed( 0, mDigits-1, 5, true );
         mLed.setLed( 0, mDigits-1, 4, false );
         delay( RollTime );
 
+        //左中上;//
         mLed.setLed( 0, mDigits-1, 6, true );
         mLed.setLed( 0, mDigits-1, 5, false );
         delay( RollTime );
 
+        //關閉左中上;//
         mLed.setLed( 0, mDigits-1, 6, false );
     }    
+}
+
+void MySevenSegment::EffectAroundStep()
+{
+    short RollTime = 300;
+    if( mServerWaitTime % RollTime == 0)
+    {        
+        byte Digit, Light, Pos;
+        Pos =  mServerWaitTime / RollTime;
+
+        if( Pos < 7 )
+        {
+            Digit = mDigits-Pos;
+            Light = 1;
+        }
+        else if( Pos == 7 )
+        {
+            Digit = 0;
+            Light = 2;
+        }
+        else if( Pos == 8 )
+        {
+            Digit = 0;
+            Light = 3;
+        }
+        else if( Pos < 15 )
+        {
+            Digit = Pos - 9;
+            Light = 4;
+        }
+        else if( Pos == 15 )
+        {
+            Digit = mDigits - 1;
+            Light = 5;
+        }
+        else if( Pos == 16 )
+        {
+            Digit = mDigits - 1;
+            Light = 6;
+        }
+
+        mLed.clearDisplay(0);
+        mLed.setLed( 0, Digit, Light, true );
+        mServerWaitTime = mServerWaitTime % ( RollTime * 16 );
+    }
+    mServerWaitTime++;
 }
 
 void MySevenSegment::EffectServer()
