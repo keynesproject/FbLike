@@ -21,7 +21,7 @@ public:
     void PrintString( String Str );
 
     //顯示指定數字;//
-    void PrintNumber( unsigned long Num );
+    void PrintNumber( unsigned long Num, bool ShowHeadZero = true );
 
     //指定字串由右往左滾動;//
     //Stop: true:滾動至最左後停住;//

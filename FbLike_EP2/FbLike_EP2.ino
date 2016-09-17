@@ -67,7 +67,7 @@ bool SetWifi()
         g_NetState = WIFI_SET_SERVER;
      
         g_WifiPro = &g_WifiServer;   
-        Ssid = "OLike002";
+        Ssid = "OLike0016";
         PW = "1234567890";
     }
     else
@@ -235,6 +235,13 @@ void Process7Seg( int State )
         g_Led.PrintString(F("Err Fb"));
         break;
 
+    //按鈕案超過N秒重新設定機器;//
+    case WIFI_RESET:
+        //因播放特效有可能較久,所以關閉Watchdog;//
+        wdt_disable();
+        g_Led.RollSubtitle(F("CLOSE"));
+        break;
+
     default:
         break;
     }
@@ -283,8 +290,8 @@ void ProcessBtn()
             //恢復EEPROM為原始設定;//
             g_Eeprom.ClearEEPROM();
 
-            //七段顯示關閉動畫;//
-            Process7Seg( WIFI_CLIENT_SETUPED );
+            //七段顯示RESEt動畫;//
+            Process7Seg( WIFI_RESET );
 
             //重新啟動 MCU;//
             HardwareReset();

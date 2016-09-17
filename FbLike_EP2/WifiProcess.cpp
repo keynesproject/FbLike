@@ -112,36 +112,45 @@ int  WifiServerProcess::Process()
             if( Str.indexOf("Setting") != -1 )
             {
                 DBGL( "Receive Setting\n" );
-                //解析資料內容，格式為: Setting?SSID=XXXX&PW=XXXX&FBID=XXXX其中XXXX則為所需設定資料;//
-                int Index = Str.indexOf('=');
-                int EndIndex = Str.indexOf('&');
-                if( Index != -1 && EndIndex != -1 )
+                if( AnalyzeSet( Str ) == true )
                 {
-                    //取得SSID設定字串;//
-                    m_ClientSetSSID = Str.substring( Index+1, EndIndex );
-    
-                    Index = Str.indexOf( '=', Index+1 );
-                    EndIndex = Str.indexOf('&', EndIndex+1 );
-                    if( Index != -1 && EndIndex != -1 )
-                    {
-                        //取得PW設定字串;//
-                        m_ClientSetPW = Str.substring( Index+1, EndIndex );
-                        
-                        Index = Str.indexOf( '=', Index+1 );
-                        if( Index != -1 )
-                        {
-                            m_ClientSetFBID = Str.substring( Index+1 );
-    
-                            //取得設定資料,回傳設定成功頁面;//
-                            ReplyPageSucces();
-                     
-                            //延遲一段時間確保資料傳送完畢;//
-                            delay(3000);
-                                
-                            return WIFI_CLIENT_SETUPED;             
-                        }
-                    }                
+                    //取得設定資料,回傳設定成功頁面;//
+                    ReplyPageSucess();
+            
+                    //延遲一段時間確保資料傳送完畢;//
+                    delay(1000);
+
+                    return WIFI_CLIENT_SETUPED;
                 }
+            }
+            else if( Str.indexOf("SetApp") != -1 )
+            {
+                DBGL( "Receive SetApp\n" );
+                if( AnalyzeSet( Str ) == true )
+                {
+                    ReplyOLikeResult( true );
+
+                    return WIFI_CLIENT_SETUPED;
+                }
+                else
+                {
+                    ReplyOLikeResult( false );
+                }
+            }
+            else if( Str.indexOf("OLike") != -1 )
+            {
+                DBGL( "Receive OLike" );
+
+                //回傳Clinet連線資訊;//
+                ReplyOLikeLink();
+            }
+            else if( Str.indexOf("OLike_Receive1") != -1 )
+            {
+                DBGL( "Receive OLike_Receive1" );
+            }
+            else if( Str.indexOf("OLike_Receive2") != -1 )
+            {
+                DBGL( "Receive OLike_Receive2" );
             }
             else
             {
@@ -151,18 +160,57 @@ int  WifiServerProcess::Process()
                 ReplyPageSetting();
             }
             
-            Uart.flush();
-            
-            //延遲0.1秒讓資料都傳送完畢;//
-            delay(100);            
+            //延遲0.1秒讓資料都傳送完畢;//            
+            delay(100);    
+            Uart.flush();        
         }
     }
     
     return WIFI_SERVER_WAIT;
 }
 
+bool WifiServerProcess::AnalyzeSet( String Data )
+{
+    //解析資料內容，格式為: Setting?SSID=XXXX&PW=XXXX&FBID=XXXX其中XXXX則為所需設定資料;//
+    int Index = Data.indexOf('=');
+    int EndIndex = Data.indexOf('&');
+    if( Index != -1 && EndIndex != -1 )
+    {
+        //取得SSID設定字串;//
+        m_ClientSetSSID = Data.substring( Index+1, EndIndex );
+    
+        Index = Data.indexOf( '=', Index+1 );
+        EndIndex = Data.indexOf('&', EndIndex+1 );
+        if( Index != -1 && EndIndex != -1 )
+        {
+            //取得PW設定字串;//
+            m_ClientSetPW = Data.substring( Index+1, EndIndex );
+            
+            Index = Data.indexOf( '=', Index+1 );
+            if( Index != -1 )
+            {
+                m_ClientSetFBID = Data.substring( Index+1 ); 
+                    
+                return true; 
+            }
+        }                
+    }
+    return false;
+}
+
 void WifiServerProcess::ReplyHead( int HtmlLength )
 {
+    String Data = F( "HTTP/1.1 200 Ok\r\nContent-Type: text/html\r\nConnection: close\r\n" );
+    if( HtmlLength != 0 )
+    {
+        Data.concat( "Content-Length: " );
+        Data.concat( HtmlLength );
+        Data.concat( "\r\n");
+        DBG( "Html Data Length " );
+        DBGL( HtmlLength );
+    }
+    m_Wifi.SendL( Data );
+    /*
     m_Wifi.SendL( "HTTP/1.1 200 Ok" );
     m_Wifi.SendL( "Content-Type: text/html" );
     m_Wifi.SendL( "Connection: close" );
@@ -175,6 +223,51 @@ void WifiServerProcess::ReplyHead( int HtmlLength )
         DBGL( HtmlLength );
     }
     m_Wifi.SendL( "" );
+    */
+}
+
+void WifiServerProcess::ReplyOLikeHead( int JsonLength )
+{
+    String Head = F("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: ");
+    Head.concat( JsonLength );
+    Head.concat( F("\r\nAccess-Control-Allow-Origin:*\r\nConnection:close\r\n") );
+    m_Wifi.SendL( Head );    
+}
+
+void WifiServerProcess::ReplyOLikeLink()
+{    
+    //HTTP檔頭;//
+    int JsonLength = 14 + 2;
+    ReplyOLikeHead( JsonLength );
+    
+    //m_Wifi.SendL( F("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: 16\r\nAccess-Control-Allow-Origin:*\r\nConnection:close\r\n")); 
+    /*m_Wifi.SendL( "HTTP/1.1 200 OK" );
+    m_Wifi.SendL( "Content-Type: application/json; charset=utf-8" );
+    m_Wifi.SendL( "Content-Length: 16" );
+    m_Wifi.SendL( "Access-Control-Allow-Origin:*" );
+    m_Wifi.SendL( "Connection: close" );
+    m_Wifi.SendL( "" );
+    */
+    m_Wifi.SendL(F( "\{\"id\":\"OLike\"\}" ));
+}
+
+void WifiServerProcess::ReplyOLikeResult( bool IsSucess )
+{
+    int JsonLength;
+    if( IsSucess )
+    {
+        JsonLength = 11 + 2;
+        ReplyOLikeHead( JsonLength );   
+
+        m_Wifi.SendL(F( "\{\"id\":\"go\"\}" ));
+    }
+    else
+    {
+        JsonLength = 14 + 2;
+        ReplyOLikeHead( JsonLength );       
+        
+        m_Wifi.SendL(F( "\{\"id\":\"error\"\}" )); 
+    }
 }
 
 void WifiServerProcess::ReplyPageSetting( )
@@ -189,7 +282,7 @@ void WifiServerProcess::ReplyPageSetting( )
     m_Wifi.Send( F("<input type=\"submit\" value=\"Apply\" /><input TYPE=\"RESET\" VALUE=\"Reset\" /></form></body></html>\r\n\r\n"));     
 }
 
-void WifiServerProcess::ReplyPageSucces()
+void WifiServerProcess::ReplyPageSucess()
 {
     int DataLength =  385 + 2 + m_ClientSetSSID.length() + m_ClientSetPW.length() + m_ClientSetFBID.length();
     ReplyHead( DataLength );

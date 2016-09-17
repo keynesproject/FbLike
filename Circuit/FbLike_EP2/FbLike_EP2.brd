@@ -2219,7 +2219,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="24.827" y="21.6" size="1.27" layer="25" rot="R180"/>
 <attribute name="VALUE" x="24.273" y="18.8" size="1.27" layer="27"/>
 </element>
-<element name="U1" library="MyProLike" package="MICRO-USB-B" value="" x="0.7" y="11" smashed="yes" rot="MR90">
+<element name="U1" library="MyProLike" package="MICRO-USB-B" value="" x="0.7" y="11" locked="yes" smashed="yes" rot="MR90">
 <attribute name="NAME" x="4.8" y="16.24" size="1.778" layer="26" rot="MR0"/>
 <attribute name="VALUE" x="-3.1" y="6.1" size="1.778" layer="28" rot="MR90"/>
 </element>

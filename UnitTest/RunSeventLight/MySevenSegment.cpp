@@ -24,7 +24,7 @@ MySevenSegment::~MySevenSegment()
 }
 
 void MySevenSegment::PrintString( String Str )
-{
+{   
     //字串顯示從輸入的最後一個字往前顯示;//
     for( int i=0; i<mDigits; i++ )
     {
@@ -35,17 +35,38 @@ void MySevenSegment::PrintString( String Str )
     }
 }
 
-void MySevenSegment::PrintNumber( unsigned long Num )
-{    
+void MySevenSegment::PrintNumber( unsigned long Num, bool ShowHeadZero )
+{   
+    byte StopDigit = mDigits;
+    
+    //檢視高位數為0是否顯示;//
+    if( ShowHeadZero == false )
+    {
+        //計算輸入字串有幾位數;//
+        StopDigit = 0;
+        unsigned long Temp = Num;
+        for ( int i=0; ; )
+        {
+            Temp /= 10;
+            if ( Temp == 0 ) 
+                break;
+            StopDigit++;
+        }
+    }
+  
     //照順序從個位數往高位數點亮;//
     for( int i=0; i<mDigits; i++ )
     { 
-        mLed.setDigit( 0, i, (byte)(Num%10), false );
+        if( i <= StopDigit )
+            mLed.setDigit( 0, i, (byte)(Num%10), false );
+        else
+            mLed.setChar( 0, i, ' ', false );
+
         Num = Num / 10;
     }  
 }
 
-void MySevenSegment::RollSubtitle( String Str )
+void MySevenSegment::RollSubtitle( String Str, bool Stop )
 {
     memset( mLedNum, ' ', mDigits );
     mLedNum[ mDigits ] = 0;
@@ -71,7 +92,7 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
 {
     switch( mode )
     {
-        case LED_NUM:            
+        case LED_NUM:
             //若數字相同則不做任何反應;//
             if( mCurrentNum == Value )
                 return;
@@ -80,7 +101,7 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
             if( mCurrentNum > Value )
             {
                 mCurrentNum = Value;
-                PrintNumber( mCurrentNum );
+                PrintNumber( mCurrentNum, false );
                 return;
             }
 
@@ -89,10 +110,13 @@ void MySevenSegment::Effect( byte mode, unsigned long Value )
 
             //閃動2次;//
             EffectFlicker(2);
+            
             break;
 
         case LED_SERVER:
-            EffectServer();
+            //EffectServer();
+            //EffectAround(1);            
+            EffectAroundStep();
             break;
     }
 }
@@ -104,17 +128,13 @@ void MySevenSegment::EffectFlicker( int Times )
         delay( 500 );
         mLed.clearDisplay(0);
         delay( 500 );
-        PrintNumber( mCurrentNum );
+        PrintNumber( mCurrentNum, false );
     }
 }
 
 //直接從現在數字滾動到指定數字;//
 void MySevenSegment::EffectPlusImmediately( unsigned long Num )
-{
-    //先判斷數字是否有改變;//
-    if( mCurrentNum == Num )
-        return;
-  
+{  
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
     
@@ -144,10 +164,6 @@ void MySevenSegment::EffectPlusImmediately( unsigned long Num )
 
 void MySevenSegment::EffectPlusAll( unsigned long Num )
 {
-    //先判斷數字是否有改變;//
-    if( mCurrentNum == Num )
-        return;
-
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
     
@@ -199,14 +215,23 @@ void MySevenSegment::EffectPlusAll( unsigned long Num )
 
 void MySevenSegment::EffectPlusOne( unsigned long Num )
 {
-    //先判斷數字是否有改變;//
-    if( mCurrentNum == Num )
-        return;
-
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
 
+    short StartDigit = 0;
+    //從最高位數開始檢查到不為0的位數;//
     for( short i = 0; i<mDigits; i++ )
+    {
+        if( mNewNum[i] == '0' )
+        {
+            StartDigit++;
+            mLedNum[i] = ' ';
+        }
+        else
+            break;
+    }
+    
+    for( short i = StartDigit; i<mDigits; i++ )
     {
         //最高位數先滾動一輪;//
         for( short j=0; j<10; j++ )
@@ -230,19 +255,17 @@ void MySevenSegment::EffectPlusOne( unsigned long Num )
             delay( mRollTime );
         }
     }
-    
+
     //記錄新數字;//
     mCurrentNum = Num;
 }
 
 void MySevenSegment::EffectRandom( unsigned long Num )
 {
-    //先判斷數字是否有改變;//
-    if( mCurrentNum == Num )
-        return;
-
     //重新設定數字字串陣列;//
     ResetNumToArray( Num );
+
+    //功能尚未完成;//
 }
 
 void MySevenSegment::EffectAround( int Times )
@@ -252,6 +275,7 @@ void MySevenSegment::EffectAround( int Times )
     
     for( byte i=0; i<Times; i++ )
     {   
+        //左上至右上;//
         for( short j = mDigits-1; j>=0; j-- )
         {
             mLed.setLed( 0, j, 1, true );
@@ -260,15 +284,18 @@ void MySevenSegment::EffectAround( int Times )
             delay( RollTime );
         }
 
+        //右中上;//
         mLed.setLed( 0, 0, 2, true );
         mLed.setLed( 0, 0, 1, false );
         delay( RollTime );   
-  
+
+        //右中下;//
         mLed.setLed( 0, 0, 3, true );
         mLed.setLed( 0, 0, 2, false );
         delay( RollTime );
         mLed.setLed( 0, 0, 3, false );
 
+        //右下至左下;//
         for( short j = 0; j<mDigits; j++ )
         {
             mLed.setLed( 0, j, 4, true );
@@ -276,16 +303,68 @@ void MySevenSegment::EffectAround( int Times )
               mLed.setLed( 0, j-1, 4, false );
             delay( RollTime );
         }
+
+        //左中下;//
         mLed.setLed( 0, mDigits-1, 5, true );
         mLed.setLed( 0, mDigits-1, 4, false );
         delay( RollTime );
 
+        //左中上;//
         mLed.setLed( 0, mDigits-1, 6, true );
         mLed.setLed( 0, mDigits-1, 5, false );
         delay( RollTime );
 
+        //關閉左中上;//
         mLed.setLed( 0, mDigits-1, 6, false );
     }    
+}
+
+void MySevenSegment::EffectAroundStep()
+{
+    int RollTime = 6000;
+    if( mServerWaitTime % RollTime == 0 )
+    {
+        byte Digit, Light;
+        mServerWaitCount = ( mServerWaitCount + 1 ) % 17;
+        if( mServerWaitCount == 0 )
+            mServerWaitCount = 1;
+        mServerWaitTime = 0;
+
+        if( mServerWaitCount < 7 )
+        {
+            Digit = mDigits - mServerWaitCount;
+            Light = 1;
+        }
+        else if( mServerWaitCount == 7 )
+        {
+            Digit = 0;
+            Light = 2;
+        }
+        else if( mServerWaitCount == 8 )
+        {
+            Digit = 0;
+            Light = 3;
+        }
+        else if( mServerWaitCount < 15 )
+        {
+            Digit = mServerWaitCount - 9;
+            Light = 4;
+        }
+        else if( mServerWaitCount == 15 )
+        {
+            Digit = mDigits - 1;
+            Light = 5;
+        }
+        else if( mServerWaitCount == 16 )
+        {
+            Digit = mDigits - 1;
+            Light = 6;
+        }        
+
+        mLed.clearDisplay(0);
+        mLed.setLed( 0, Digit, Light, true );
+    }
+    mServerWaitTime++;
 }
 
 void MySevenSegment::EffectServer()
@@ -294,15 +373,15 @@ void MySevenSegment::EffectServer()
     {
         if( mServerWaitCount == 0 )
         {
-            PrintString(F("SEr __"));
+            PrintString(F("SEr_  "));
         }
         else if( mServerWaitCount == 1 )
         {
-            PrintString(F("SEr_ _"));
+            PrintString(F("SEr _ "));
         }
         else
         {
-            PrintString(F("SEr__ "));
+            PrintString(F("SEr  _"));
         }
         mServerWaitCount = (mServerWaitCount+1) % 3;
         mServerWaitTime = mServerWaitTime%3500;
@@ -313,9 +392,11 @@ void MySevenSegment::EffectServer()
 
 void MySevenSegment::ResetNumToArray( unsigned long NewNum )
 {
+    //分析新數值轉換為字串陣列;//
     ltoa( NewNum, mNewNum, 10 );
     ArrangeArrary( mNewNum, mDigits );
 
+    //分析現有數值轉換字串陣列;//
     ltoa( mCurrentNum, mLedNum, 10 );
     ArrangeArrary( mLedNum, mDigits );
 }

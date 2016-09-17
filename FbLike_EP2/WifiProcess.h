@@ -5,16 +5,17 @@
 #include "WifiMt7681.h"
 
 #define WIFI_NONE           0    //無狀態,不處裡任何事物;//
-#define WIFI_DEFAULT        1    //初始化狀態;//               ______
-#define WIFI_SET_SERVER     2    //設定WIFI為SERVER狀態中;//   SEt  S
-#define WIFI_SET_CLIENT     3    //設定WIFI為CLIENT狀態中;//   SEt  C
-#define WIFI_SERVER_WAIT    4    //伺服器狀態等待設定;   //    SEr __ -> SEr_ _ -> SEr__
-#define WIFI_CLIENT_SETUPED 5    //Client回傳資料設定完畢;//    OFF
-#define WIFI_ERR_INITIAL    6    //WIFI模組初始化失敗;  //     IF E01
-#define WIFI_ERR_SETUP      7    //WIFI模組設定連線資訊失敗;// IF E02
-#define WIFI_ERR_NO_LINK    8    //WIFI模組沒有成功連線到AP;// IF E03
+#define WIFI_DEFAULT        1    //初始化狀態;//               HELLO 跑燈
+#define WIFI_SET_SERVER     2    //設定WIFI為SERVER狀態中;//   SEt UP
+#define WIFI_SET_CLIENT     3    //設定WIFI為CLIENT狀態中;//   SEt Fb
+#define WIFI_SERVER_WAIT    4    //伺服器狀態等待設定;   //    外環跑圈圈
+#define WIFI_CLIENT_SETUPED 5    //Client回傳資料設定完畢;//   CLOSE 跑燈
+#define WIFI_ERR_INITIAL    6    //WIFI模組初始化失敗;  //     Err 01
+#define WIFI_ERR_SETUP      7    //WIFI模組設定連線資訊失敗;// Err 02
+#define WIFI_ERR_NO_LINK    8    //WIFI模組沒有成功連線到AP;// Err 03
 #define WIFI_REQ_SUCESS     9    //FB數字顯示;// 
-#define WIFI_ERR_NO_DATA    10   //沒請求到任何數字;//         Fb EId
+#define WIFI_ERR_NO_DATA    10   //沒請求到任何數字;//         Err Fb
+#define WIFI_RESET          11   //重新設定機器;//             RESEt 跑燈
 
 #define WIFI_REQ_SSID         1
 #define WIFI_REQ_PW           2
@@ -60,9 +61,14 @@ public:
     unsigned long  GetRequestValue( int Type ); //取得請求欄位的值//
     String  GetRequestString( int Type );
 private:            
-    void ReplyHead( int HtmlLength = 0 );
+    void ReplyHead( int HtmlLength );
+    void ReplyOLikeHead( int JsonLength );
+    void ReplyOLikeLink();
+    void ReplyOLikeResult( bool IsSucess );
     void ReplyPageSetting();     
-    void ReplyPageSucces();
+    void ReplyPageSucess();
+
+    bool AnalyzeSet( String Data );
         
 private:
     String m_ClientSetSSID;

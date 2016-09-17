@@ -38,7 +38,7 @@ void ProcessBtn()
         
         if ( g_CountBtn.duration() > 100 ) 
         {  
-            g_TestNum+=6;
+            g_TestNum += 98;
             break;
             //g_TestNum++;
         }
@@ -53,7 +53,7 @@ void loop()
 }
 
 void Process7Seg( )
-{
-    g_Led.Effect( 1 );
+{       
+    g_Led.Effect( 2, g_TestNum );
 }
 
